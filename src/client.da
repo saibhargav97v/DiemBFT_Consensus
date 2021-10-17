@@ -27,6 +27,7 @@ class Client(process):
         logger = logging.getLogger(f"client_{config_num}")
         logger.setLevel(level)
         logger.addHandler(handler)
+        logger.addHandler(logging.StreamHandler())
 
         return logger
 

@@ -24,6 +24,7 @@ class Run(process):
         logger = logging.getLogger("runner")
         logger.setLevel(level)
         logger.addHandler(handler)
+        logger.addHandler(logging.StreamHandler())
 
         return logger
 
