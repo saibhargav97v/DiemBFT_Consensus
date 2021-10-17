@@ -19,7 +19,7 @@ class Ledger:
         payload = str(txn) + "\n" if len(txn) > 0 else None 
         self.committed_txns[payload[3]] = payload
         self.modules_map['latest_committed_payload'] = payload
-        file_path = "../ledgers/ledger_" + str(self.modules_map["config"]["id"]) + ".txt"
+        file_path = f'../ledgers/{self.modules_map["config"]["config_num"]}/ledger_{str(self.modules_map["config"]["id"])}.txt'
         file = open(file_path, "a+")
 
         file.write(payload)
