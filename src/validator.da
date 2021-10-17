@@ -1,8 +1,8 @@
 import pickle
 import os
-from numpy import random
 from time import sleep
 import util
+import logging
 
 from leader_election import LeaderElection
 from ledger import Ledger
@@ -21,13 +21,16 @@ def obj_to_string(obj, extra='    '):
 
 class Validator(process):
 
-    def setup(id: int, validators: list, public_keys: list, private_key):
+    def setup(id: int, validators: list, public_keys: list, private_key, config_num):
+        self.setup_logger(config_num, logging.INFO)
+        logging.info("Setup started")
         self.exit_flag = False
         self.validators = validators
         self.modules = {}                  # A dictionary which stores all the modules' references  # delta, 1 is a place holder
         self.modules["config"] = {}
         self.modules["config"]["id"] = id
         self.modules["config"]["nfaulty"] = 0
+        self.modules["config"]["config_num"] = config_num
         self.pace_maker_timer = 4
         self.modules['validators_list'] = self.validators 
         self.safety = Safety(self.modules, private_key, public_keys, -1, -1) # TODO Check this initialization
@@ -46,12 +49,21 @@ class Validator(process):
         self.sysinit = True
         self.has_pending_transactions = True
         self.modules['latest_committed_payload'] = None
-        self.initalize_ledger_file()
+        self.initalize_ledger_file(config_num)
         
-    def initalize_ledger_file():
-        file_path = "../ledgers/ledger_" + str(id) + ".txt"
-        if not os.path.exists("../ledgers"):
-            os.makedirs("../ledgers")
+    def setup_logger(config_num,log_level):
+        if not os.path.exists(f"../logs/{config_num}"):
+            os.makedirs(f"../logs/{config_num}")
+        log_file = f"../logs/{config_num}/validator_{id}.log"
+        logging.basicConfig(filename=log_file, filemode='w', level=log_level,
+                            format='%(asctime)s %(levelname)-8s %(message)s', 
+                            datefmt='%Y-%m-%d %H:%M:%S')
+
+
+    def initalize_ledger_file(config_num):
+        file_path = f"../ledgers/{config_num}/ledger_{str(self.modules['config']['id'])}.txt"
+        if not os.path.exists(f"../ledgers/{config_num}"):
+            os.makedirs(f"../ledgers/{config_num}")
         
         with open(file_path, 'w+') as f:
             pass
@@ -124,6 +136,9 @@ class Validator(process):
         self.pace_maker.advance_round_qc(qc)
 
     def process_proposal_message(P):
+        valid_msg = self.modules['safety'].verify_msg_signature(P.signature, P.sender)
+        if not valid_msg:
+            return
         self.process_certificate_qc(P.block.qc)
         self.process_certificate_qc(P.high_commit_qc)
         self.pace_maker.advance_round_tc(P.last_round_tc)
@@ -158,6 +173,9 @@ class Validator(process):
             self.process_new_round_event(None)
 
     def process_vote_message(vote_msg):
+        valid_msg = self.modules['safety'].verify_msg_signature(vote_msg.signature, vote_msg.sender)
+        if not valid_msg:
+            return
         qc = self.modules["block_tree"].process_vote(vote_msg)
         if qc != None:
             output('qc formed at :  ',self.modules["config"]["id"],  obj_to_string(qc))
