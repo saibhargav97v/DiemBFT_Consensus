@@ -1,6 +1,5 @@
 import nacl.hash
 from collections import defaultdict
-from typing import DefaultDict
 from util import get_hash
 import logging
 
@@ -35,9 +34,9 @@ class Block:
         self.pending_commit = True  
 
 class LedgerCommitInfo:
-    def __init__(self, id) -> None:
-        self.commit_state_id = id   
-        self.vote_info_hash = None
+    def __init__(self, id, vote_info_hash) -> None:
+        self.commit_state_id = id
+        self.vote_info_hash = vote_info_hash
 
     def __hash__(self):
         return hash((self.commit_state_id,self.vote_info_hash))

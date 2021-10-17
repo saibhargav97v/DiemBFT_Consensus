@@ -1,6 +1,7 @@
 import nacl.encoding
 import nacl.hash
 from nacl.bindings.utils import sodium_memcmp
+from util import get_hash
 from block_tree import Vote_Info, VoteMsg, LedgerCommitInfo
 import pickle
 from nacl.signing import VerifyKey
@@ -103,7 +104,7 @@ class Safety:
             self.__increase_highest_vote_round(b.round) # Don’t vote again in this (or lower) round
             # VoteInfo carries the potential QC info with ids and rounds of the parent QC
             vote_info = Vote_Info(b.id, b.round, None if not(b.qc) else b.qc.vote_info.id, qc_round)
-            ledger_commit_info = LedgerCommitInfo(self.__commit_state_id_candidate(b.round, b.qc))
+            ledger_commit_info = LedgerCommitInfo(self.__commit_state_id_candidate(b.round, b.qc),get_hash(vote_info))
             signature = self.sign_message(ledger_commit_info)
             return VoteMsg(vote_info, ledger_commit_info, self.modules_map['block_tree'].high_commit_qc,self.modules_map['config']["id"], signature )
         return None
