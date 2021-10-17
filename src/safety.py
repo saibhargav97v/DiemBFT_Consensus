@@ -37,7 +37,6 @@ class Safety:
         return round + 1 == block_round
 
     def __safe_to_extend(self, block_round, qc_round, tc):
-        # print("deebugggg", tc.tmo_high_qc_rounds, qc_round)
         return self.__consecutive(block_round, tc.round) and (qc_round >= max(tc.tmo_high_qc_rounds))
 
     def __safe_to_vote(self, block_round, qc_round, tc):

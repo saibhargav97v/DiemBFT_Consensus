@@ -2,6 +2,7 @@ import nacl.hash
 from collections import defaultdict
 from typing import DefaultDict
 from util import get_hash
+import logging
 
 class Vote_Info:
     def __init__(self, id = -1, round = -1, parent_id = None,parent_round = None):
@@ -85,7 +86,9 @@ class BlockTree:
         if qc and qc.ledger_commit_info  and qc.ledger_commit_info.commit_state_id != None and ((not self.high_commit_qc) or qc.vote_info.round > self.high_commit_qc.vote_info.round) :
             self.modules["ledger"].commit(qc.vote_info.parent_id)
             self.__prune(qc.vote_info.parent_id)
-            print("validator", self.modules["config"]["id"] , " committing bid ", qc.vote_info.parent_id, " in ", self.modules["pace_maker"].current_round , " round")
+            validator_id = self.modules["config"]["id"]
+            current_round = self.modules["pace_maker"].current_round
+            logging.info(f"validator {validator_id} committing bid {qc.vote_info.parent_id} in {current_round} round")
             self.high_commit_qc = qc
         if qc and self.high_qc and qc.vote_info.round > self.high_qc.vote_info.round: 
             self.high_qc = qc      
