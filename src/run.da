@@ -40,13 +40,14 @@ class Run(process):
         public_keys.update({'C'+str(i): obj.verify_key.encode() for i,obj in enumerate(signing_key_objects_clients)})
         logger.info("Spawning validator processes")
         for i, validator in enumerate(validators):
-            setup(validator, (i, validators, clients, public_keys, signing_key_objects_validators[i], config['sq_num']))  # setup validators with id [1 to n]
+            setup(validator, (i, validators, clients, public_keys, signing_key_objects_validators[i], 
+                                            config['sq_num'], config['nfaulty']))  # setup validators with id [1 to n]
             start(validator)
 
         logger.info("Spawning client processes")
         for i, client in enumerate(clients):
             setup(client, ('C'+str(i), validators, public_keys, signing_key_objects_clients[i], 
-                                        config['timeout'], config['numMessages'], config['nfaulty']))  # Sending Validators List
+                                        config['sq_num'], config['timeout'], config['numMessages'], config['nfaulty']))  # Sending Validators List
             #TODO : Don't send public keys of other clients
             start(client)
 
