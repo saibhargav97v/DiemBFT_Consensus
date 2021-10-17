@@ -1,5 +1,6 @@
 configs =  [
-    {'sq_num':1, 'nclients': 1, 'nreplicas': 2, 'nfaulty': 0, 'timeout': 3, 'numMessages' : 1},
-    {'sq_num':2, 'nclients': 3, 'nreplicas': 4, 'nfaulty': 1, 'timeout': 3, 'numMessages' : 1},
-    {'sq_num':3, 'nclients': 2, 'nreplicas': 7, 'nfaulty': 1, 'timeout': 3, 'numMessages' : 2}
+    {'sq_num':1, 'nclients': 1, 'nreplicas': 2, 'nfaulty': 0, 'timeout': 30, 'numMessages' : 1},
+    {'sq_num':2, 'nclients': 1, 'nreplicas': 4, 'nfaulty': 1, 'timeout': 30, 'numMessages' : 2},
+    {'sq_num':3, 'nclients': 3, 'nreplicas': 3, 'nfaulty': 2, 'timeout': 5, 'numMessages' : 5},
+    {'sq_num':4, 'nclients': 2, 'nreplicas': 7, 'nfaulty': 1, 'timeout': 30, 'numMessages' : 2}
 ]

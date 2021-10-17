@@ -109,7 +109,7 @@ class BlockTree:
     def process_qc(self, qc):
         if qc and qc.ledger_commit_info  and qc.ledger_commit_info.commit_state_id != None and ((not self.high_commit_qc) or qc.vote_info.round > self.high_commit_qc.vote_info.round) :
             txns_to_commit = self.__prune(qc.vote_info.parent_id)
-            print("validator", self.modules["config"]["id"] , " committing bid ", qc.vote_info.parent_id,txns_to_commit, " in ", self.modules["pace_maker"].current_round , " round")
+            # print("validator", self.modules["config"]["id"] , " committing bid ", qc.vote_info.parent_id,txns_to_commit, " in ", self.modules["pace_maker"].current_round , " round")
             for txn in txns_to_commit:
                 self.modules["ledger"].commit(txn)
             self.high_commit_qc = qc
