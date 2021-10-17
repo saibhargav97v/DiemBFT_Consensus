@@ -1,49 +1,41 @@
-from pickle import NONE
 import nacl.hash
 from collections import defaultdict
 from typing import DefaultDict
 from util import get_hash
 
-def obj_to_string(obj, extra='    '):
-    return str(obj.__class__) + '\n' + '\n'.join(
-        (extra + (str(item) + ' = ' +
-                  (obj_to_string(obj.__dict__[item], extra + '    ') if hasattr(obj.__dict__[item], '__dict__') else str(
-                      obj.__dict__[item])))
-         for item in sorted(obj.__dict__)))
-
 class Vote_Info:
     def __init__(self, id = -1, round = -1, parent_id = None,parent_round = None):
-        self.id = id
-        self.round = round
-        self.parent_id = parent_id
-        self.parent_round = parent_round
+        self.id = id                                # ID of the current block
+        self.round = round                          # Round number of the current block
+        self.parent_id = parent_id                  # ID of the parent block
+        self.parent_round = parent_round            # Round number of the parent block
 
     def __hash__(self):
         return hash((self.id,self.round,self.parent_id,self.parent_round))
 
 class QC:
     def __init__(self, vote_info = Vote_Info(), ledger_commit_info = None, signatures = None, author = None, author_signature = None):
-        self.vote_info = vote_info
-        self.ledger_commit_info = ledger_commit_info
-        self.signatures = signatures
-        self.author = author
-        self.author_signature = author_signature
-        self.parent_id = None
+        self.vote_info = vote_info                      
+        self.ledger_commit_info = ledger_commit_info    
+        self.signatures = signatures                    # A quorum of signatures
+        self.author = author                            # Validator that produced the qc
+        self.author_signature = author_signature        # Signature of the author 
+        self.parent_id = None                           
 
 class Block:
     def __init__(self, id, config, txns, round, qc=QC()) -> None:
-        self.author = 0
-        self.round = round
-        self.payload = txns
-        self.qc = qc
-        self.children = []
-        self.id = id
-        self.parent_id = None
-        self.pending_commit = True
+        self.author = 0             # The author of the block. Initialized later in process_new_round_event
+        self.round = round          # The round that generated this proposal
+        self.payload = txns         # Proposed transactions
+        self.qc = qc                # QC for parent block
+        self.children = []           
+        self.id = id                # A unique digest of author, round, payload, qc:vote info:id and qc:signatures
+        self.parent_id = None       
+        self.pending_commit = True  
 
 class LedgerCommitInfo:
     def __init__(self, id) -> None:
-        self.commit_state_id = id
+        self.commit_state_id = id   
         self.vote_info_hash = None
 
     def __hash__(self):
@@ -51,18 +43,18 @@ class LedgerCommitInfo:
 
 class VoteMsg:
     def __init__(self, vote_info, ledger_commit_info, high_commit_qc,sender, signature) -> None:
-        self.vote_info = vote_info
-        self.ledger_commit_info = ledger_commit_info
-        self.high_commit_qc = high_commit_qc
-        self.sender = sender
-        self.signature = signature
+        self.vote_info = vote_info                      # A VoteInfo record
+        self.ledger_commit_info = ledger_commit_info    # Speculated ledger info
+        self.high_commit_qc = high_commit_qc            # QC to synchronize on committed blocks
+        self.sender = sender                            
+        self.signature = signature                      
 
 class BlockTree:
     def __init__(self, modules) -> None:
-        self.pending_block_tree = []
+        self.pending_block_tree = []                    # Tree of blocks pending commitment
         self.pending_votes = defaultdict(set)
-        self.high_qc = QC()
-        self.high_commit_qc = None
+        self.high_qc = QC()                                 # Highest known QC
+        self.high_commit_qc = None                          # Highest QC that serves as a commit certificate
         self.modules = modules
         self.root = Block(-1, 0, None, None) # genesis Block
         self.root.children = self.pending_block_tree
@@ -106,7 +98,7 @@ class BlockTree:
         self.process_qc(vote.high_commit_qc)
         vote_idx = get_hash(vote.ledger_commit_info)
         self.pending_votes[vote_idx].add((vote.sender, vote.signature))
-        if len(self.pending_votes[vote_idx]) == len(self.modules["validators_list"]) - self.modules['config']['nfaulty']:
+        if len(self.pending_votes[vote_idx]) == (len(self.modules["validators_list"]) - self.modules['config']['nfaulty']):
             author_sign = self.modules['safety'].sign_message(self.pending_votes[vote_idx])
             qc = QC(vote.vote_info, vote.ledger_commit_info, self.pending_votes[vote_idx], self.modules['config']['id'], author_sign)
             return qc

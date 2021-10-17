@@ -55,7 +55,7 @@ class Run(process):
         
         output('Run process done')
         logger.info("done")
-        send(('done',), to= (validators))
+        send(('terminate',), to= (validators))
 
 
 def main():
