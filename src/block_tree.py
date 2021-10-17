@@ -39,7 +39,7 @@ class Block:
         self.children = []
         self.id = id
         self.parent_id = None
-        self.pending_commit = False
+        self.pending_commit = True
 
 class LedgerCommitInfo:
     def __init__(self, id) -> None:

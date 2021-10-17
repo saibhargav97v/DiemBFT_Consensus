@@ -1,5 +1,6 @@
 import sys
 from validator import Validator
+from validator_fi import ValidatorFI
 from client import Client
 import util
 from configs import configs
