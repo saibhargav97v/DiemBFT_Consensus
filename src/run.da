@@ -6,6 +6,7 @@ import util
 from configs import configs
 import logging
 import os
+from time import sleep
 
 class Run(process):
 
@@ -47,9 +48,14 @@ class Run(process):
         logger.info("Spawning client processes")
         for i, client in enumerate(clients):
             setup(client, ('C'+str(i), validators, public_keys, signing_key_objects_clients[i], 
-                                        config['sq_num'], config['timeout'], config['numMessages'], config['nfaulty']))  # Sending Validators List
-            #TODO : Don't send public keys of other clients
+                                        config['sq_num'], config['timeout'], config['numMessages'], config['nfaulty'],self))  # Sending Validators List
             start(client)
+        
+        await(each(l in clients, has=received(('done',), from_=l)))
+        
+        output('Run process done')
+        logger.info("done")
+        send(('done',), to= (validators))
 
 
 def main():
@@ -58,4 +64,4 @@ def main():
     for config in configs:
         p = new(Run)
         setup(p, (config,))
-        start(p)
+        start(p)      

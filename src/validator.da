@@ -72,20 +72,22 @@ class Validator(process):
 
     def run():
         
-        while not self.exit_flag:
+        while not received(('done',)):
             output("Starting Timer in :", id)
             cur_round = self.pace_maker.current_round
             timer_duration = self.pace_maker.get_round_timer()
             output("Current Round", self.pace_maker.current_round, "in: ", id)
-            -- r
+            
             if await(self.pace_maker.current_round == cur_round + 1):
                 self.send_ack_to_client(self.modules['latest_committed_payload'])
-                # send_ack_to_client(self.modules['latest_committed_payload'])
                 output("Round Progressed to ", self.pace_maker.current_round ,"No timeouts in id: ", id) 
-                pass
+
             elif timeout(timer_duration):
                 output("Round timed out after ", timer_duration, "in :", id)
                 self.send_ack_to_client(self.modules['latest_committed_payload'])
+        
+        
+        self.logging.info(f'Validator {id} Terminating')
                 # timeout_info = self.safety.make_timeout(self.pace_maker.current_round, self.block_tree.high_qc, self.pace_maker.last_round_tc)    
                 # timeout_msg  = TimeOutMsg(timeout_info, self.pace_maker.last_round_tc, self.modules["block_tree"].high_commit_qc)
                 # send(('Timeout', timeout_msg), to=self.validators)
@@ -110,7 +112,7 @@ class Validator(process):
     def send_ack_to_client(c_message):
         output('in send_ack_to_client ', self.ledger.committed_txns.keys(), "in :", id)
         if c_message:
-            output('C_message', c_message)
+            output('C_message', c_message, " : to client ", self.clients[int(c_message[1][1:])])
             send(('Ack', id, c_message[0], logical_clock(), c_message[3]), to=(self.clients[int(c_message[1][1:])]))
         self.modules['latest_committed_payload'] = None
 
@@ -119,6 +121,7 @@ class Validator(process):
         if valid_msg:
             msg = pickle.loads(msg.message)
             if action == "Client":
+                output("From client : ", p, "Msg : ", msg)
                 self.mem_pool.add_command_to_mempool([msg, sender, time, txn_id])
                 # output(obj_to_string(self.mem_pool))
                 if self.sysinit:
@@ -132,7 +135,7 @@ class Validator(process):
             if action == 'Local Timeout':
                 output('Local Timeout', msg)
             elif action == 'Propose':
-                output("Proposal received at Validator", self.modules["config"]["id"], "msg: ", obj_to_string(msg))
+                # output("Proposal received at Validator", self.modules["config"]["id"], "msg: ", obj_to_string(msg))
                 self.process_proposal_message(msg)
             elif action == 'vote_message':
                 self.process_vote_message(msg)
@@ -198,7 +201,7 @@ class Validator(process):
             return
         qc = self.modules["block_tree"].process_vote(vote_msg)
         if qc != None:
-            output('qc formed at :  ',self.modules["config"]["id"],  obj_to_string(qc))
+            # output('qc formed at :  ',self.modules["config"]["id"],  obj_to_string(qc))
             self.process_certificate_qc(qc)
             self.process_new_round_event(None)
     
@@ -209,7 +212,7 @@ class Validator(process):
                 return
             block = self.modules["block_tree"].generate_block(self.modules["config"], next_txn, self.modules["pace_maker"].current_round)
             block.author = id
-            output("Validator", self.modules["config"]["id"], " Broadcasting Proposal Block: ", obj_to_string(block))
+            # output("Validator", self.modules["config"]["id"], " Broadcasting Proposal Block: ", obj_to_string(block))
             signature = self.modules["safety"].sign_message(block.id)
             proposal_msg = ProposalMsg(block, last_tc, self.block_tree.high_commit_qc,id, signature)
             # send(('Propose', id, self.modules["safety"].sign_message(proposal_msg), logical_clock()), to=self.validators)
