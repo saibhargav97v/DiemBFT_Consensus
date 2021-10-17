@@ -31,20 +31,21 @@ class Run(process):
         logger.info(f"Running configuration {config}")
         validators = new(Validator, num=config['nreplicas'])
         validators = list(validators)
+        clients = new(Client, num=config['nclients'])
+        clients = list(clients)
         signing_key_objects_validators = util.get_signing_key_objects(config['nreplicas'])
         signing_key_objects_clients = util.get_signing_key_objects(config['nclients'])
         public_keys = {i: obj.verify_key.encode() for i,obj in enumerate(signing_key_objects_validators)}
         public_keys.update({'C'+str(i): obj.verify_key.encode() for i,obj in enumerate(signing_key_objects_clients)})
         logger.info("Spawning validator processes")
         for i, validator in enumerate(validators):
-            setup(validator, (i, validators, public_keys, signing_key_objects_validators[i], config['sq_num']))  # setup validators with id [1 to n]
+            setup(validator, (i, validators, clients, public_keys, signing_key_objects_validators[i], config['sq_num']))  # setup validators with id [1 to n]
             start(validator)
 
         logger.info("Spawning client processes")
-        clients = new(Client, num=config['nclients'])
-        clients = list(clients)
         for i, client in enumerate(clients):
-            setup(client, ('C'+str(i), validators, public_keys, signing_key_objects_clients[i]))  # Sending Validators List
+            setup(client, ('C'+str(i), validators, public_keys, signing_key_objects_clients[i], 
+                                        config['timeout'], config['numMessages'], config['nfaulty']))  # Sending Validators List
             #TODO : Don't send public keys of other clients
             start(client)
 

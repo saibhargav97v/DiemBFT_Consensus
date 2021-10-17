@@ -4,10 +4,9 @@ from time import sleep
 
 class Client(process):
 
-    def setup(id, validators: list, public_keys: list, pvt_key):  # have to create message class
+    def setup(id, validators: list, public_keys: list, pvt_key, time_out, num_messages, num_faulty):  # have to create message class
         self.exit_flag = 0
         self.quorum_set = set()
-        pass
 
     def sign_message(msg_obj):
         serialized_msg = pickle.dumps(msg_obj)
@@ -15,35 +14,37 @@ class Client(process):
 
     def run():
 
-        # num_messages = 1
-        # i=0
-        send(('Client', id, f"transactions_{id}", logical_clock(),1), to=self.validators)
-        send(('Client', id, "dummy", logical_clock(),1), to=self.validators)
-        send(('Client', id, "dummy", logical_clock(),1), to=self.validators)
+        i=0
+        # send(('Client', id, f"transactions_{id}", logical_clock(),1), to=self.validators)
+        # send(('Client', id, "dummy", logical_clock(),2), to=self.validators)
+        # send(('Client', id, "dummy", logical_clock(),3), to=self.validators)
         # send(('Client', id, sign_message(f"dummy{1}"), logical_clock(),1), to=self.validators)
-        # while i < num_messages:
-        #     txn_id = id+'_'+str(i)
-        #     send(('Client', id, sign_message(f"transactions_{txn_id}"), logical_clock(),txn_id), to=self.validators)
-            # if await(len(self.quorum_set) == 2):
-            #     i+=1
-            #     output("In client run method : Acknowledgements received from validators. Proceeding to next message")
-            #     output(self.quorum_set)
-            #     self.quorum_set = set()
-            # elif timeout(5):
-            #     output("In client run method : Timed out... Retrying")
-            #     output(self.quorum_set)
-            #     self.quorum_set = set()
+        while i < num_messages:
+            self.txn_id = f"{id}_{i}"
+            send(('Client', id, sign_message(f"transactions_{self.txn_id}"), logical_clock(),self.txn_id), to=self.validators)
+            if await(len(self.quorum_set) == num_faulty + 1):
+                i+=1
+                output("In client run method : Acknowledgements received from validators. Proceeding to next message")
+                output(self.quorum_set)
+                self.quorum_set = set()
+            elif timeout(time_out):
+                output("In client run method : Timed out... Retrying")
+                output(self.quorum_set)
+                self.quorum_set = set()
+        
+        send(('Client', id, sign_message("dummy"), logical_clock(), self.txn_id), to=self.validators)
+        send(('Client', id, sign_message("dummy"), logical_clock(), self.txn_id), to=self.validators)
         
         # sleep(15)                                #Just to make the client wait for pending replies by validators before exiting
-        # output("Client processing done")
-        # await(exit_flag == 1)
+        output("Client processing done")
+        await(exit_flag == 1)
 
     
     def receive(msg = (action, sender, message, time, txn_id), from_=p):
         # valid_msg = self.modules['safety'].verify_msg_signature(msg, sender)
         # if valid_msg:
         # msg = pickle.loads(msg.message)
-        if action == "Ack":
+        if action == "Ack" : #and self.txn_id == txn_id
             output("From Validator: ", sender, message)
             # self.txn_committed = True
             self.quorum_set.add(sender)

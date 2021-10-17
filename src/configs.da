@@ -1,5 +1,5 @@
-configs =  [{'sq_num':1, 'nclients': 1, 'nreplicas': 2, 'nfaulty': 0, 'timeout': 3},
-            {'sq_num':2, 'nclients': 3, 'nreplicas': 4, 'nfaulty': 1, 'timeout': 3},
-            {'sq_num':3, 'nclients': 6, 'nreplicas': 6, 'nfaulty': 1, 'timeout': 3}
-
+configs =  [
+    {'sq_num':1, 'nclients': 1, 'nreplicas': 2, 'nfaulty': 0, 'timeout': 3, 'numMessages' : 1},
+    {'sq_num':2, 'nclients': 3, 'nreplicas': 4, 'nfaulty': 1, 'timeout': 3, 'numMessages' : 1},
+    {'sq_num':3, 'nclients': 2, 'nreplicas': 7, 'nfaulty': 1, 'timeout': 3, 'numMessages' : 2}
 ]
