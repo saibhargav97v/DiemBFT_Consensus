@@ -81,7 +81,7 @@ class Safety:
     def valid_signatures(self, qc, tc):
         validity = True
         #dont check for genesis validity
-        if qc is None or qc.vote_info.round == -1: 
+        if qc is None or tc is None or qc.vote_info.round == -1 or tc.round == -1: 
             return validity
         #Validate signature of qc author
         validity = validity and self.verify_msg_signature(qc.author_signature,qc.author)
@@ -89,6 +89,11 @@ class Safety:
         for qc_sign in qc.signatures:
             validity = validity and self.verify_msg_signature(qc_sign[1],qc_sign[0])
         logging.info(f"Validity of signatures in qc verified to be {validity}")
+
+        for tmo_sign in tc.tmo_signatures:
+            validity = validity and self.verify_msg_signature(tmo_sign[1],tmo_sign[0])
+
+        logging.info(f"Validity of signatures in tc verified to be {validity}")
         return validity  
 
     def make_vote(self, b, last_tc):
@@ -107,5 +112,5 @@ class Safety:
         qc_round = high_qc.vote_info.round if high_qc is not None else -1
         if self.valid_signatures(high_qc, last_tc) and self.__safe_to_timeout(round, qc_round, last_tc):
             self.__increase_highest_vote_round(round)  # Stop voting for round
-            return TimeoutInfo(round, high_qc, self.modules_map["config"]["id"], self.sign_message({"round": round, "high_qc_round": high_qc.vote_info.round}))
+            return TimeoutInfo(round, high_qc, self.modules_map["config"]["id"],(id, self.sign_message({"round": round, "high_qc_round": high_qc.vote_info.round})))
         return None  # TODO

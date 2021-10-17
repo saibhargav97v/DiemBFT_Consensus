@@ -1,12 +1,18 @@
 import sys
 from messages import TC
 
+"""
+pacemaker_local_timeout_round() and pacemaker_process_remote_timeout(timeout_msg) 
+are written in validator for message transmissions
+"""
+
 class PaceMaker:
     def __init__(self, modules_map):
         self.modules_map = modules_map
-        self.current_round = 0                      #Initially zero
-        self.pending_timeouts = {}                  #TODO value?
-        self.pending_timeouts_high_qc_rounds = {}
+        self.current_round = 0                      # Initially zero
+        self.pending_timeouts = {}                  # For constructing TC
+        self.pending_timeouts_high_qc_rounds = {}   # high_qc_rounds of validators participated in TC
+        self.pending_timeouts_signatures = {}       # Signatures of validators who timed out at each round
         self.delta = modules_map['config']['delta']
         self.last_round_tc = TC(-1, [-1], None)                       
 
@@ -29,5 +35,10 @@ class PaceMaker:
         if qc == None or qc.vote_info.round < self.current_round:
             return False
         self.last_round_tc = TC(-1, [-1], None)
+
+
+        self.pending_timeouts = {}
+        self.pending_timeouts_high_qc_rounds = {}
+        self.pending_timeouts_signatures = {}
         self.start_timer(qc.vote_info.round + 1)    #Uncomment later when you are testing with timeouts
         return True
