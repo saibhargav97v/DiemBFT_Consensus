@@ -53,7 +53,7 @@ class Run(process):
         
         await(each(l in clients, has=received(('done',), from_=l)))
         
-        output('Run process done')
+        # output('Run process done')
         logger.info("done")
         send(('terminate',), to= (validators))
 

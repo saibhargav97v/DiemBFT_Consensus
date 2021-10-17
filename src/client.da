@@ -33,8 +33,8 @@ class Client(process):
     def setup(id, validators: list, public_keys: list, pvt_key, config_num, TIMEOUT, num_messages, num_faulty, parent):  
         self.logger = self.setup_logger(config_num, logging.INFO)
         self.logger.info("Setup done")
-        self.quorum_flag = 0                    # Termination flag which checks if sufficient valid replies (f+1) are received 
-                                                # from validators for client to agree on that transactions' commit
+        self.quorum_flag = 0            # Termination flag which checks if sufficient valid replies (f+1) are received 
+                                        # from validators for client to agree on that transactions' commit
         self.quorum_map = defaultdict(int)
 
     def sign_message(msg_obj):
@@ -71,7 +71,7 @@ class Client(process):
                 for k,v in self.quorum_map.items():
                     self.logger.info(f'{k} - {v}')
                 self.logger.info(f'Client {id} processing done')
-                output(f'Client {id} processing done')
+                # output(f'Client {id} processing done')
                 break                                               # Break out of the while True loop once u receive sufficient 
                                                                     # replies for all your transac
                 
