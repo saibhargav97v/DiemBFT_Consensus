@@ -21,15 +21,16 @@ def obj_to_string(obj, extra='    '):
 
 class Validator(process):
 
-    def setup(id: int, validators: list, public_keys: list, private_key, config_num):
+    def setup(id: int, validators: list, clients: list, public_keys: list, private_key, config_num, num_faulty):
         self.setup_logger(config_num, logging.INFO)
         logging.info("Setup started")
         self.exit_flag = False
         self.validators = validators
+        self.clients = clients
         self.modules = {}                  # A dictionary which stores all the modules' references  # delta, 1 is a place holder
         self.modules["config"] = {}
         self.modules["config"]["id"] = id
-        self.modules["config"]["nfaulty"] = 0
+        self.modules["config"]["nfaulty"] = num_faulty
         self.modules["config"]["config_num"] = config_num
         self.pace_maker_timer = 4
         self.modules['validators_list'] = self.validators 
@@ -71,7 +72,24 @@ class Validator(process):
 
     def run():
         
-        await(self.exit_flag)
+        while not self.exit_flag:
+            output("Starting Timer in :", id)
+            cur_round = self.pace_maker.current_round
+            timer_duration = self.pace_maker.get_round_timer()
+            output("Current Round", self.pace_maker.current_round, "in: ", id)
+            -- r
+            if await(self.pace_maker.current_round == cur_round + 1):
+                self.send_ack_to_client(self.modules['latest_committed_payload'])
+                # send_ack_to_client(self.modules['latest_committed_payload'])
+                output("Round Progressed to ", self.pace_maker.current_round ,"No timeouts in id: ", id) 
+                pass
+            elif timeout(timer_duration):
+                output("Round timed out after ", timer_duration, "in :", id)
+                self.send_ack_to_client(self.modules['latest_committed_payload'])
+                # timeout_info = self.safety.make_timeout(self.pace_maker.current_round, self.block_tree.high_qc, self.pace_maker.last_round_tc)    
+                # timeout_msg  = TimeOutMsg(timeout_info, self.pace_maker.last_round_tc, self.modules["block_tree"].high_commit_qc)
+                # send(('Timeout', timeout_msg), to=self.validators)
+
         # while not self.exit_flag:
         #     output("Starting Timer")
         #     cur_round = self.pace_maker.current_round
@@ -89,22 +107,19 @@ class Validator(process):
         #         send(('Timeout', timeout_msg), to=self.validators)
 
 
-    # def send_ack_to_client(c_message):
-    #     if c_message: pass
-    #         send(('Ack', id, c_message[0], logical_clock(),c_message[3]), to=self.cur_client)
-    #     self.modules['latest_committed_payload'] = None
+    def send_ack_to_client(c_message):
+        output('in send_ack_to_client ', self.ledger.committed_txns.keys(), "in :", id)
+        if c_message:
+            output('C_message', c_message)
+            send(('Ack', id, c_message[0], logical_clock(), c_message[3]), to=(self.clients[int(c_message[1][1:])]))
+        self.modules['latest_committed_payload'] = None
 
     def receive(msg = (action, sender, msg, time, txn_id), from_=p):
         valid_msg = self.modules['safety'].verify_msg_signature(msg, sender)
         if valid_msg:
             msg = pickle.loads(msg.message)
             if action == "Client":
-                # output("From client", sender, msg)
-                # sleeptime = random.uniform(3.95, 4.05)
-                # print("sleeping for:", sleeptime, "seconds")
-                # sleep(sleeptime)
-                # print("sleeping is over")
-                self.mem_pool.add_command_to_mempool([msg, p, time, txn_id])
+                self.mem_pool.add_command_to_mempool([msg, sender, time, txn_id])
                 # output(obj_to_string(self.mem_pool))
                 if self.sysinit:
                     self.sysinit = False
