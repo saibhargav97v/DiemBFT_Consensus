@@ -7,18 +7,14 @@ class PaceMaker:
         self.delta = 3
         self.current_round = 0
         self.last_round_tc = TC(-1, [-1], None)
-        self.pending_timeouts = []                  #TODO value?
+        self.pending_timeouts = {}              #TODO value?
+        self.pending_timeouts_high_qc_rounds = {}
 
     def get_round_timer(self):
         return 4 * self.delta                  #4 sec timer for each round
 
     def start_timer(self, new_round):
         self.current_round = new_round
-
-    def process_remote_timeout(self, timeout_msg):
-        timeout_info = timeout_msg.timeout_info
-        if timeout_info.round < self.current_round:
-            return None
         
         # Implement the rest of process_remote_timeout when we are testing timeout certificates.
 

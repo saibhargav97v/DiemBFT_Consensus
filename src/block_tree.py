@@ -66,57 +66,40 @@ class BlockTree:
         self.modules = modules
         self.root = Block(-1, 0, None, None) # genesis Block
         self.root.children = self.pending_block_tree
-        self.pending_transactions = []
+        self.prev_block_id = None
 
     def __prune(self, id):
-        txns_to_commit = []
-        # print("in prune ", id)
         while id:
             block_to_prune = self.find_block(self.pending_block_tree, id)
             id = None
             if block_to_prune:
                 if not block_to_prune.pending_commit:
                     break
-                c_payload = block_to_prune.payload
-                if c_payload and c_payload[0] == "dummy":
-                    break
-                txns_to_commit.append(block_to_prune.payload)
                 block_to_prune.pending_commit = False
                 id = block_to_prune.parent_id
                 block_to_prune = None
-        return txns_to_commit
 
     def __add(self,block):
         blockid = self.high_qc.vote_info.id
+        self.prev_block_id = block.id
         parent_block = self.find_block(self.pending_block_tree, blockid)
         if not parent_block:
             self.pending_block_tree.append(block)
         else:
             block.parent_id = parent_block.id
             parent_block.children.append(block)
-        # print("After add", parent_block)
-        # print(" Pending Tree", self.pending_transactions)
-        # print(" Pending Tree res", self.find_block(self.pending_block_tree, block.id))
-
-    # def get_pending_transactions(self):
-    #     if not self.pending_block_tree:
-    #         return []
-    #     elif not self.pending_block_tree.child:
-    #         return self.pending_block_tree.payload
-    #     else:
-    #         return self.pending_block_tree.child.payload
 
     def process_qc(self, qc):
         if qc and qc.ledger_commit_info  and qc.ledger_commit_info.commit_state_id != None and ((not self.high_commit_qc) or qc.vote_info.round > self.high_commit_qc.vote_info.round) :
-            txns_to_commit = self.__prune(qc.vote_info.parent_id)
-            # print("validator", self.modules["config"]["id"] , " committing bid ", qc.vote_info.parent_id,txns_to_commit, " in ", self.modules["pace_maker"].current_round , " round")
-            for txn in txns_to_commit:
-                self.modules["ledger"].commit(txn)
+            self.modules["ledger"].commit(qc.vote_info.parent_id)
+            self.__prune(qc.vote_info.parent_id)
+            print("validator", self.modules["config"]["id"] , " committing bid ", qc.vote_info.parent_id, " in ", self.modules["pace_maker"].current_round , " round")
             self.high_commit_qc = qc
         if qc and self.high_qc and qc.vote_info.round > self.high_qc.vote_info.round: 
             self.high_qc = qc      
 
     def execute_and_insert(self, b):
+        self.modules["ledger"].speculate(self.prev_block_id, b.id, b.payload)
         self.__add(b)
 
     def process_vote(self, vote):

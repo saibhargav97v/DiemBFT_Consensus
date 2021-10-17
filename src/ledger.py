@@ -3,15 +3,28 @@ import os
 class Ledger:
     def __init__(self, modules_map):
         self.modules_map = modules_map
+        self.speculated_state = {}
         self.committed_txns = {}
 
-    def speculate(self, prev_block_id, block_id, txns):
-        pass
+    def speculate(self,prev_block_id, block_id, txn):
+        self.speculated_state[block_id] = {
+            "payload": txn,
+            "prev_block_id": prev_block_id
+        }
+    def commit(self, id):
+        txns = []
+        while self.speculated_state.get(id, None) is not None:
+            state = self.speculated_state.pop(id)
+            txns.insert(0,state["payload"])
+            id = state["prev_block_id"]
+
+        for txn in txns:
+            self.persist_txn(txn)
 
     def pending_state(self, block_id:int):
         pass
 
-    def commit(self, txn):
+    def persist_txn(self, txn):
         if txn is None:
             return
         if txn[0] == "dummy":

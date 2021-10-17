@@ -44,6 +44,7 @@ class Safety:
         return round + 1 == block_round
 
     def __safe_to_extend(self, block_round, qc_round, tc):
+        # print("deebugggg", tc.tmo_high_qc_rounds, qc_round)
         return self.__consecutive(block_round, tc.round) and (qc_round >= max(tc.tmo_high_qc_rounds))
 
     def __safe_to_vote(self, block_round, qc_round, tc):
@@ -61,11 +62,11 @@ class Safety:
             return False
 
         # qc or tc must allow entering the round to timeout
-        return self.__consecutive(round, qc_round) or self.__consecutive(round, tc.round)
+        return tc is not None and self.__consecutive(round, qc_round) or self.__consecutive(round, tc.round)
 
     def __commit_state_id_candidate(self, block_round, qc):
         # find the committed id in case a qc is formed in the vote round
-        if self.__consecutive(block_round, qc.vote_info.round) and qc.vote_info.round >= 0:
+        if qc is not None and self.__consecutive(block_round, qc.vote_info.round) and qc.vote_info.round >= 0:
             return qc.vote_info.round 
         else:
             return None  #TODO check this symbol
@@ -85,12 +86,11 @@ class Safety:
             return False
 
 
-    def valid_signatures(self, block, tc):
+    def valid_signatures(self, qc, tc):
         validity = True
         #dont check for genesis validity
-        if block.qc.vote_info.round == -1: 
+        if qc is None or qc.vote_info.round == -1: 
             return validity
-        qc = block.qc
         #Validate signature of qc author
         validity = validity and self.verify_msg_signature(qc.author_signature,qc.author)
         #Validate signature for each of the signature in qc's quorum of signatures
@@ -100,8 +100,8 @@ class Safety:
         return validity  
 
     def make_vote(self, b, last_tc):
-        qc_round = b.qc.vote_info.round
-        if self.valid_signatures(b, last_tc) and self.__safe_to_vote(b.round, qc_round, last_tc):
+        qc_round = b.qc.vote_info.round if b.qc else -1
+        if b is not None and self.valid_signatures(b.qc, last_tc) and self.__safe_to_vote(b.round, qc_round, last_tc):
             self.__update_highest_qc_round(qc_round)  # Protect qc round
             self.__increase_highest_vote_round(b.round) # Don’t vote again in this (or lower) round
             # VoteInfo carries the potential QC info with ids and rounds of the parent QC
@@ -112,8 +112,8 @@ class Safety:
         return None
 
     def make_timeout(self, round, high_qc, last_tc):
-        qc_round = high_qc.vote_info.round
+        qc_round = high_qc.vote_info.round if high_qc is not None else -1
         if self.valid_signatures(high_qc, last_tc) and self.__safe_to_timeout(round, qc_round, last_tc):
             self.__increase_highest_vote_round(round)  # Stop voting for round
-            return TimeoutInfo(round, high_qc, self.modules["config"]["id"], self.sign_message({"round": round, "high_qc_round": high_qc.vote_info.round}))
+            return TimeoutInfo(round, high_qc, self.modules_map["config"]["id"], self.sign_message({"round": round, "high_qc_round": high_qc.vote_info.round}))
         return None  # TODO

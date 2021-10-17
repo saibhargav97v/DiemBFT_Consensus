@@ -1,7 +1,6 @@
 import pickle
 import os
 from time import sleep
-import util
 import logging
 
 from leader_election import LeaderElection
@@ -85,29 +84,9 @@ class Validator(process):
             elif timeout(timer_duration):
                 output("Round timed out after ", timer_duration, "in :", id)
                 self.send_ack_to_client(self.modules['latest_committed_payload'])
-        
+                self.pacemaker_local_timeout_round()
         
         self.logging.info(f'Validator {id} Terminating')
-                # timeout_info = self.safety.make_timeout(self.pace_maker.current_round, self.block_tree.high_qc, self.pace_maker.last_round_tc)    
-                # timeout_msg  = TimeOutMsg(timeout_info, self.pace_maker.last_round_tc, self.modules["block_tree"].high_commit_qc)
-                # send(('Timeout', timeout_msg), to=self.validators)
-
-        # while not self.exit_flag:
-        #     output("Starting Timer")
-        #     cur_round = self.pace_maker.current_round
-        #     timer_duration = self.pace_maker.get_round_timer()
-        #     output("Current Round", self.pace_maker.current_round)
-        #     if await(self.pace_maker.current_round == cur_round + 1):
-        #         send_ack_to_client(self.modules['latest_committed_payload'])
-        #         output("Round Progressed to ", self.pace_maker.current_round ,"No timeouts") 
-        #         pass
-        #     elif timeout(timer_duration):
-        #         # send_ack_to_client(self.modules['latest_committed_payload'])
-        #         output("Round timed out after ", timer_duration)
-        #         timeout_info = self.safety.make_timeout(self.pace_maker.current_round, self.block_tree.high_qc, self.pace_maker.last_round_tc)    
-        #         timeout_msg  = TimeOutMsg(timeout_info, self.pace_maker.last_round_tc, self.modules["block_tree"].high_commit_qc)
-        #         send(('Timeout', timeout_msg), to=self.validators)
-
 
     def send_ack_to_client(c_message):
         output('in send_ack_to_client ', self.ledger.committed_txns.keys(), "in :", id)
@@ -126,7 +105,7 @@ class Validator(process):
                 # output(obj_to_string(self.mem_pool))
                 if self.sysinit:
                     self.sysinit = False
-                    self.process_new_round_event(None)
+                    self.process_new_round_event(self.pace_maker.last_round_tc)
 
     def receive(msg=(action, sender, msg, time), from_=p):
         valid_msg = True #self.modules['safety'].verify_msg_signature(msg, sender)
@@ -166,7 +145,7 @@ class Validator(process):
         self.pace_maker.advance_round_tc(P.last_round_tc)
         round = self.modules["pace_maker"].current_round
         leader = self.modules["leader_election" ].get_leader(round)
-        
+        output("Propose here 1")
         if P.block.round != round or P.sender != leader or P.block.author != leader: #or not self.has_pending_transactions:
             output("No Progress at",self.modules["config"]["id"])
             return
@@ -181,19 +160,26 @@ class Validator(process):
         
 
         vote_msg = self.modules["safety"].make_vote(P.block, P.last_round_tc)
+        # if self.pace_maker.current_round == 2 and self.modules["config"]["id"] == 0: # basic timeout testing
+        #     output("0 manual timeout trigger")
+        #     sleep(3)
+        #     return
         if vote_msg != None:
             next_leader = self.modules["leader_election"].get_leader(round+1)
             # send(('vote_message', id, self.modules["safety"].sign_message(vote_msg), logical_clock()), to=self.validators[next_leader])
             self.send_message('vote_message',vote_msg,next_leader)
 
     def process_timeout_message(M):
-        self.process_certficate_qc(M.tmo_info.high_qc)
-        self.process_certficate_qc(M.high_commit_qc)
+        output('Received Timeout at ', self.modules["config"]["id"], "with cur round = ", self.pace_maker.current_round)
+        self.process_certificate_qc(M.tmo_info.high_qc)
+        self.process_certificate_qc(M.high_commit_qc)
         self.modules["pace_maker"].advance_round_tc(M.last_round_tc)
-        tc = self.modules["pace_maker"].process_remote_timeout(M)
+
+        tc = self.pacemaker_process_remote_timeout(M)
         if tc != None:
-            self.modules["pace_maker"].advance_round(tc)
-            self.process_new_round_event(None)
+            output('tc formed at :  ',self.modules["config"]["id"])
+            self.modules["pace_maker"].advance_round_tc(tc)
+            self.process_new_round_event(tc)
 
     def process_vote_message(vote_msg):
         valid_msg = self.modules['safety'].verify_msg_signature(vote_msg.signature, vote_msg.sender)
@@ -203,9 +189,9 @@ class Validator(process):
         if qc != None:
             # output('qc formed at :  ',self.modules["config"]["id"],  obj_to_string(qc))
             self.process_certificate_qc(qc)
-            self.process_new_round_event(None)
+            self.process_new_round_event(self.pace_maker.last_round_tc)
     
-    def process_new_round_event(last_tc:None):
+    def process_new_round_event(last_tc):
         if self.modules["config"]["id"] == self.modules["leader_election"].get_leader(self.modules["pace_maker"].current_round):
             next_txn = self.mem_pool.get_transaction()
             if next_txn is None:
@@ -221,11 +207,33 @@ class Validator(process):
             pass# output("I am not a leader", self.modules["config"]["id"])
 
     def send_message(msg_type, msg, dstn='broadcast'):
-
         if dstn =='broadcast':
             dstn = self.validators
         else:
             dstn = self.validators[dstn]
 
         send((msg_type, id, msg, logical_clock()), to = dstn) #self.modules["safety"].sign_message(msg)
+    
+    def pacemaker_local_timeout_round():
+        timeout_info = self.safety.make_timeout(self.pace_maker.current_round, self.block_tree.high_qc, self.pace_maker.last_round_tc)    
+        timeout_msg  = TimeOutMsg(timeout_info, self.pace_maker.last_round_tc, self.modules["block_tree"].high_commit_qc)
+        output('Broadcasting Timeout at ', self.modules["config"]["id"], "at round : ", self.pace_maker.current_round)
+        self.send_message('Timeout',timeout_msg,'broadcast')
+    
+    def pacemaker_process_remote_timeout(timeout_msg):
+        tm_info = timeout_msg.tmo_info
+        if tm_info.round < self.pace_maker.current_round:
+            return None
+        if self.pace_maker.pending_timeouts.get(tm_info.round, None) is None:
+            self.pace_maker.pending_timeouts[tm_info.round] = set()
+        if self.pace_maker.pending_timeouts_high_qc_rounds.get(tm_info.round, None) is None:
+            self.pace_maker.pending_timeouts_high_qc_rounds[tm_info.round] = set()
+        if tm_info.sender not in self.pace_maker.pending_timeouts[tm_info.round]:
+            self.pace_maker.pending_timeouts[tm_info.round].add(tm_info.sender)
+            self.pace_maker.pending_timeouts_high_qc_rounds[tm_info.round].add(tm_info.high_qc.vote_info.round)
+        if len(self.pace_maker.pending_timeouts[tm_info.round]) == self.modules["config"]["nfaulty"] + 1:
+            self.pacemaker_local_timeout_round()
+        if len(self.pace_maker.pending_timeouts[tm_info.round]) == 2*self.modules["config"]["nfaulty"] + 1:
+            return TC(tm_info.round, self.pace_maker.pending_timeouts_high_qc_rounds[tm_info.round], self.pace_maker.pending_timeouts[tm_info.round])
+        return None
 
