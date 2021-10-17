@@ -8,19 +8,12 @@ from nacl.exceptions import BadSignatureError
 from messages import TimeoutInfo
 import logging
 
-
-def obj_to_string(obj, extra='    '):
-    return str(obj.__class__) + '\n' + '\n'.join(
-        (extra + (str(item) + ' = ' +
-                  (obj_to_string(obj.__dict__[item], extra + '    ') if hasattr(obj.__dict__[item], '__dict__') else str(
-                      obj.__dict__[item])))
-         for item in sorted(obj.__dict__)))
 class Safety:
     def __init__(self, modules_map, private_key, public_keys, highest_qc_round, highest_vote_round):
         logging.info("Initializing Safety")
-        self.modules_map = modules_map  # map of all the modules of the validator
-        self.__private_key = private_key  # own private key of the validator
-        self.__public_keys = public_keys  # public keys of all the validators
+        self.modules_map = modules_map      # map of all the modules of the validator
+        self.__private_key = private_key    # own private key of the validator
+        self.__public_keys = public_keys    # public keys of all the validators
         self.__highest_qc_round = highest_qc_round
         self.__highest_vote_round = highest_vote_round
         logging.info("Private and public keys intialized")
