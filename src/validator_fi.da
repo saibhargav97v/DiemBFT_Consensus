@@ -1,0 +1,6 @@
+from validator import Validator
+
+class ValidatorFI(process, Validator):
+
+    def dummy():
+        pass

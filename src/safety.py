@@ -26,6 +26,10 @@ class Safety:
         logging.info("Private and public keys intialized")
         self.hasher = nacl.hash.sha256
 
+    #Method to update __highest_vote_round for fault injection module
+    def set_highest_qc_round(self,round):
+        self.__highest_vote_round = round
+
     def __increase_highest_vote_round(self, round):
         # commit not to vote in rounds lower than round
         logging.info("Maximizing the highest vote round")
