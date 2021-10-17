@@ -158,10 +158,6 @@ class Validator(process):
         
 
         vote_msg = self.modules["safety"].make_vote(P.block, P.last_round_tc)
-        # if self.pace_maker.current_round == 2 and self.modules["config"]["id"] == 0: # basic timeout testing
-        #     output("0 manual timeout trigger")
-        #     sleep(3)
-        #     return
         if vote_msg != None:
             next_leader = self.modules["leader_election"].get_leader(round+1)
             # send(('vote_message', id, self.modules["safety"].sign_message(vote_msg), logical_clock()), to=self.validators[next_leader])
@@ -226,12 +222,18 @@ class Validator(process):
             self.pace_maker.pending_timeouts[tm_info.round] = set()
         if self.pace_maker.pending_timeouts_high_qc_rounds.get(tm_info.round, None) is None:
             self.pace_maker.pending_timeouts_high_qc_rounds[tm_info.round] = set()
+
+        if self.pace_maker.pending_timeouts_signatures.get(tm_info.round, None) is None:
+            self.pace_maker.pending_timeouts_signatures[tm_info.round]= set()
+
         if tm_info.sender not in self.pace_maker.pending_timeouts[tm_info.round]:
             self.pace_maker.pending_timeouts[tm_info.round].add(tm_info.sender)
             self.pace_maker.pending_timeouts_high_qc_rounds[tm_info.round].add(tm_info.high_qc.vote_info.round)
+            self.pace_maker.pending_timeouts_signatures[tm_info.round].add(tm_info.signature)
+
         if len(self.pace_maker.pending_timeouts[tm_info.round]) == self.modules["config"]["nfaulty"] + 1:
             self.pacemaker_local_timeout_round()
         if len(self.pace_maker.pending_timeouts[tm_info.round]) == 2*self.modules["config"]["nfaulty"] + 1:
-            return TC(tm_info.round, self.pace_maker.pending_timeouts_high_qc_rounds[tm_info.round], self.pace_maker.pending_timeouts[tm_info.round])
+            return TC(tm_info.round, self.pace_maker.pending_timeouts_high_qc_rounds[tm_info.round], self.pace_maker.pending_timeouts_signatures[tm_info.round])
         return None
 
