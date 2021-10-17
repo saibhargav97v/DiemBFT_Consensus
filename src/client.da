@@ -17,9 +17,15 @@ class Client(process):
 
         # num_messages = 1
         # i=0
-        send(('Client', id, f"transactions_{id}", logical_clock(),1), to=self.validators)
-        send(('Client', id, "dummy", logical_clock(),1), to=self.validators)
-        send(('Client', id, "dummy", logical_clock(),1), to=self.validators)
+        send(('Client', id, sign_message(f"transactions_{id}"), logical_clock(),'id'+'_'+str(1)), to=self.validators)
+        # send(('Client', id, "dummy", logical_clock(),'id'+'_'+str(2)), to=self.validators)
+        # send(('Client', id, "dummy", logical_clock(),'id'+'_'+str(3)), to=self.validators)
+        send(('Client', id, sign_message(f"transactions_{id}"), logical_clock(),'id'+'_'+str(4)), to=self.validators)
+        # send(('Client', id, "dummy", logical_clock(),'id'+'_'+str(4)), to=self.validators)
+        # send(('Client', id, "dummy", logical_clock(),'id'+'_'+str(5)), to=self.validators)
+        send(('Client', id, sign_message(f"transactions_{id}"), logical_clock(),'id'+'_'+str(6)), to=self.validators)
+        send(('Client', id, sign_message("dummy"), logical_clock(),'id'+'_'+str(7)), to=self.validators)
+        send(('Client', id, sign_message("dummy"), logical_clock(),'id'+'_'+str(8)), to=self.validators)
         # send(('Client', id, sign_message(f"dummy{1}"), logical_clock(),1), to=self.validators)
         # while i < num_messages:
         #     txn_id = id+'_'+str(i)

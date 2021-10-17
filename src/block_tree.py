@@ -75,6 +75,8 @@ class BlockTree:
             block_to_prune = self.find_block(self.pending_block_tree, id)
             id = None
             if block_to_prune:
+                if not block_to_prune.pending_commit:
+                    break
                 c_payload = block_to_prune.payload
                 if c_payload and c_payload[0] == "dummy":
                     break
@@ -109,8 +111,6 @@ class BlockTree:
         if qc and qc.ledger_commit_info  and qc.ledger_commit_info.commit_state_id != None and ((not self.high_commit_qc) or qc.vote_info.round > self.high_commit_qc.vote_info.round) :
             txns_to_commit = self.__prune(qc.vote_info.parent_id)
             print("validator", self.modules["config"]["id"] , " committing bid ", qc.vote_info.parent_id,txns_to_commit, " in ", self.modules["pace_maker"].current_round , " round")
-
-            txns_to_commit = self.__prune(qc.vote_info.parent_id)
             for txn in txns_to_commit:
                 self.modules["ledger"].commit(txn)
             self.high_commit_qc = qc
