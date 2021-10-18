@@ -49,7 +49,10 @@ class Client(process):
             return False
 
     def run():
-        
+        """
+        Client sends the transactions to validators and wait for quorum_flag to set. In case of a timeout, it retransmits
+        all the transactions to validators.
+        """
         while True:
             iter=0
             while iter < num_messages:
@@ -58,7 +61,7 @@ class Client(process):
                 self.logger.info(f"{CLIENT} {id}: Message sent with txn_id: {self.txn_id}")
                 iter+=1
 
-            # Sending two dummy transactions at the end of the transactions list 
+            # Sending two dummy transactions at the end of the transactions list to handle last two transactions.
             send((MsgType.CLIENT, id, sign_message(DUMMY), logical_clock(), self.txn_id), to=self.validators)
             send((MsgType.CLIENT, id, sign_message(DUMMY), logical_clock(), self.txn_id), to=self.validators)
             
@@ -68,9 +71,9 @@ class Client(process):
                 for k,v in self.quorum_map.items():
                     self.logger.info(f'{k} - {v}')
                 self.logger.info(f'{CLIENT} {id}: Processing done')
-                # output(f'Client {id} processing done')
-                break                                               # Break out of the while True loop once u receive sufficient 
-                                                                    # replies for all your transac
+                break          
+                # Breaking out of the infinite loop once u receive f+1 replies for all your transactions
+                                                                    
                 
             elif timeout(TIMEOUT): # Timeout argument from setup. Client timeouts and then retransmitts requests.
                  self.logger.info(f"{CLIENT} {id}: Run method : Timed out... Retransmitting requests")
@@ -89,6 +92,6 @@ class Client(process):
                 self.logger.info(self.quorum_map)
                 if len(self.quorum_map) == num_messages:
                     for k, v in self.quorum_map.items():
-                        if v < num_faulty + 1:
+                        if v < num_faulty + 1:  # Check for f + 1 in quorum_map
                             return
-                    self.quorum_flag = 1
+                    self.quorum_flag = 1        # Set quorum_flag to true

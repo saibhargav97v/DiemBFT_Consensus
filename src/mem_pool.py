@@ -9,7 +9,7 @@ class MemPool:
 
     def add_command_to_mempool(self, client_command):
 
-        # Handling deduplicates by checking ledger's committed_Txns and Mem_pool 
+        # Handling deduplicates by checking ledger's committed_Txns, pending_Txns and Mem_pool
 
         txn_id = client_command[3]
         already_received_command = False
