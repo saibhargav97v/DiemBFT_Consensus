@@ -29,7 +29,7 @@ class Client(process):
 
     def setup(id, validators: list, public_keys: list, pvt_key, config_num, TIMEOUT, num_messages, num_faulty, parent):  
         self.logger = self.setup_logger(config_num, logging.INFO)
-        self.logger.info("{CLIENT} {id}: Setup done")
+        self.logger.info(f"{CLIENT} {id}: Setup done")
         self.quorum_flag = 0            # Termination flag which checks if sufficient valid replies (f+1) are received 
                                         # from validators for client to agree on that transactions' commit
         self.quorum_map = defaultdict(int)
