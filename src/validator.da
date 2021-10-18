@@ -3,6 +3,7 @@ import os
 from time import sleep
 import logging
 import random
+import util
 
 from leader_election import LeaderElection
 from ledger import Ledger
@@ -98,11 +99,11 @@ class Validator(process):
         serialized_msg = pickle.dumps(msg_obj)
         return private_key.sign(serialized_msg)
 
-    def send_ack_to_client(c_message):
-        self.logging.info(f'{VALIDATOR} {id}: In send_ack_to_client {self.ledger.committed_txn_ids}')
-        if c_message:
-            client_process = self.clients[int(c_message[1][1:])]
-            send((MsgType.ACK, id, sign_message(c_message[0]), logical_clock(), c_message[3]), to=(client_process))
+    def send_ack_to_client(c_messages):
+        if c_messages and len(c_messages) > 0:
+            for c_message in c_messages:
+                client_process = self.clients[int(c_message[1][1:])]
+                send((MsgType.ACK, id, sign_message(c_message[0]), logical_clock(), c_message[3]), to=(client_process))
         self.modules['latest_committed_payload'] = None
 
     def receive(msg = (action, sender, msg, time, txn_id), from_=p):
@@ -115,7 +116,7 @@ class Validator(process):
                 self.mem_pool.add_command_to_mempool([msg, sender, time, txn_id])
                 if self.sysinit:
                     self.sysinit = False
-                    self.process_new_round_event(self.pace_maker.last_round_tc)
+                    self.process_new_round_event(TC(-1, [-1], None))
 
     def receive(msg=(action, sender, msg, time), from_=p):
         valid_msg =  self.modules[SAFETY].verify_msg_signature(msg, sender)
@@ -131,7 +132,7 @@ class Validator(process):
             else:
                 self.logging.info('Default')
         else:
-            self.logging.info('{VALIDATOR} {id}: Bad signature')
+            self.logging.info(f'{VALIDATOR} {id}: Bad signature')
 
 
     def process_certificate_qc(qc):
@@ -142,6 +143,7 @@ class Validator(process):
     def setattr(attr,val):
         if attr == 'highest_vote_round': self.modules[SAFETY].set_highest_qc_round(val)
         elif attr == 'current_round': self.modules['pace_maker']['current_round'] = val
+        elif attr == 'high_qc.round': self.modules['block_tree']['high_qc']['round'] = val
 
     def process_proposal_message(P):
         valid_msg = self.modules[SAFETY].verify_msg_signature(P.signature, P.sender)
@@ -177,7 +179,7 @@ class Validator(process):
 
         tc = self.pacemaker_process_remote_timeout(M)
         if tc != None:
-            self.logging.info('{VALIDATOR} {id}: TC formed')
+            self.logging.info(f'{VALIDATOR} {id}: TC formed')
             self.modules[PACEMAKER].advance_round_tc(tc)
             self.process_new_round_event(tc)
 
@@ -187,7 +189,7 @@ class Validator(process):
             return
         qc = self.modules[BLOCK_TREE].process_vote(vote_msg)
         if qc != None:
-            # output('qc formed at :  ',self.modules[CONFIG][ID],  util.obj_to_string(qc))
+            logging.info(f'qc formed at :  {self.modules["config"]["id"]}')
             self.process_certificate_qc(qc)
             self.process_new_round_event(self.pace_maker.last_round_tc)
     
@@ -202,7 +204,7 @@ class Validator(process):
             proposal_msg = ProposalMsg(block, last_tc, self.block_tree.high_commit_qc,id, signature)
             self.send_message(MsgType.PROPOSE ,proposal_msg,'_')
         else :
-            pass# output("I am not a leader", self.modules[CONFIG][ID])
+            pass#
 
     def send_message(msg_type, msg, dstn='_'):
 
@@ -213,7 +215,8 @@ class Validator(process):
                 dest = self.leader_election.get_leader(self.pace_maker.current_round+1) if fail_case.dest == 'leader' else fail_case.dest
                 
                 if  ((src == id) or (src  == '_')) and (dest == dstn) and \
-                    (fail_case.round == self.pace_maker.current_round) and fail_case.msg_type == msg_type:
+                    (fail_case.round == self.pace_maker.current_round or fail_case.round == '_')\
+                     and (fail_case.msg_type == msg_type or fail_case.msg_type == '_'):
                     probability = fail_case.prob
                     rand_num = random.uniform(0,1)
                     if fail_case.fail_type==FailType.Delay:

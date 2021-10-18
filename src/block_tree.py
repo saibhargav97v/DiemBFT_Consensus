@@ -100,7 +100,7 @@ class BlockTree:
             self.__prune(qc.vote_info.parent_id)                            #   Prunes the Block Tree
             validator_id = self.modules[CONFIG][ID]
             current_round = self.modules[PACEMAKER].current_round
-            logging.info(f"{VALIDATOR} {validator_id} committing bid {qc.vote_info.parent_id} in {current_round} round")
+            logging.info(f"{VALIDATOR} {validator_id} committing bid {qc.vote_info.parent_id}, txns : {self.modules['latest_committed_payload']}")
             self.high_commit_qc = qc                                        #  Updates the high commit qc
         if qc and self.high_qc and qc.vote_info.round > self.high_qc.vote_info.round: 
             self.high_qc = qc      
@@ -118,9 +118,10 @@ class BlockTree:
         self.process_qc(vote.high_commit_qc)
         vote_idx = get_hash(vote.ledger_commit_info)
         self.pending_votes[vote_idx].add((vote.sender, vote.signature))
-        if len(self.pending_votes[vote_idx]) == 2 * self.modules[CONFIG]['nfaulty'] + 1:
-            author_sign = self.modules[SAFETY].sign_message(self.pending_votes[vote_idx])
-            qc = QC(vote.vote_info, vote.ledger_commit_info, self.pending_votes[vote_idx], self.modules[CONFIG][ID], author_sign)
+        if len(self.pending_votes[vote_idx]) == len(self.modules['validators_list']) - self.modules['config']['nfaulty'] :
+            author_sign = self.modules['safety'].sign_message(self.pending_votes[vote_idx])
+            qc = QC(vote.vote_info, vote.ledger_commit_info, self.pending_votes[vote_idx], self.modules['config']['id'], author_sign)
+            del self.pending_votes[vote_idx]
             return qc
         return None
     

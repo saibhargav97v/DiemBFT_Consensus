@@ -1,0 +1,32 @@
+Run the following command from inside src folder to execute all the test cases:
+
+< python -m da --message-buffer-size 1000000 run.da >
+
+Adding new test cases to run:
+Any new test cases can be added to src/config.da file with appropriate sequence number and running the command above will create corresponding logs and ledger files in src/logs/sq_num and src/ledgers/sq_num folders.
+
+Test Cases format:
+Configs.da file is a list of configs of all test cases in a single file.
+It is sufficient run.da to execute all these test cases.
+Each test case will generate separate logger and ledger files categorized by test case number in the config file for all clients and Validators.
+Structure of each test case:
+{
+'sq_num':#testcase(folders for ledgers and logs will be formed by this number), 
+'nclients': #Clients,
+ 'nreplicas': #Validators, 
+'nfaulty': #Fault, 
+'timeout': #Client timeout for retransmission, 
+'numMessages' : #number of transactions from each client,
+'failure' : FailureConfig(failures = [
+  Failure(src='_',dest='leader',msg_type=MsgType.VOTE,round=1,prob=0.8,fail_type=FailType.MsgLoss, val=9)],
+seed = 12345678),
+
+'delta': delta for validator local round timeouts (4*delta)
+    }
+Failure structure is maintained as explained in phase2.doc
+
+Failure types: 
+MsgLoss = Message Not Sent 
+Delay = Delay in Sending a message
+SetAttr = highest_vote_round, current_round, high_qc.round
+ByzatineNoPropose = Byzantine Leader Doesn't Propose a Message
