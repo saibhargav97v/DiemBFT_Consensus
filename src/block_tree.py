@@ -2,6 +2,7 @@ import nacl.hash
 from collections import defaultdict
 from util import get_hash
 import logging
+from constants import *
 
 class Vote_Info:
     def __init__(self, id = -1, round = -1, parent_id = None,parent_round = None):
@@ -95,17 +96,17 @@ class BlockTree:
         else it just updates the high qc
         """
         if qc and qc.ledger_commit_info  and qc.ledger_commit_info.commit_state_id != None and ((not self.high_commit_qc) or qc.vote_info.round > self.high_commit_qc.vote_info.round) : 
-            self.modules["ledger"].commit(qc.vote_info.parent_id)           #   Ledger.commit
+            self.modules[LEDGER].commit(qc.vote_info.parent_id)           #   Ledger.commit
             self.__prune(qc.vote_info.parent_id)                            #   Prunes the Block Tree
-            validator_id = self.modules["config"]["id"]
-            current_round = self.modules["pace_maker"].current_round
-            logging.info(f"validator {validator_id} committing bid {qc.vote_info.parent_id} in {current_round} round")
+            validator_id = self.modules[CONFIG][ID]
+            current_round = self.modules[PACEMAKER].current_round
+            logging.info(f"{VALIDATOR} {validator_id} committing bid {qc.vote_info.parent_id} in {current_round} round")
             self.high_commit_qc = qc                                        #  Updates the high commit qc
         if qc and self.high_qc and qc.vote_info.round > self.high_qc.vote_info.round: 
             self.high_qc = qc      
 
     def execute_and_insert(self, b):
-        self.modules["ledger"].speculate(self.prev_block_id, b.id, b.payload)  # updates the ledger speculated states
+        self.modules[LEDGER].speculate(self.prev_block_id, b.id, b.payload)  # updates the ledger speculated states
         self.__add(b)                                                          # adds to the pending block tree
 
     def process_vote(self, vote):
@@ -117,9 +118,9 @@ class BlockTree:
         self.process_qc(vote.high_commit_qc)
         vote_idx = get_hash(vote.ledger_commit_info)
         self.pending_votes[vote_idx].add((vote.sender, vote.signature))
-        if len(self.pending_votes[vote_idx]) == 2 * self.modules['config']['nfaulty'] + 1:
-            author_sign = self.modules['safety'].sign_message(self.pending_votes[vote_idx])
-            qc = QC(vote.vote_info, vote.ledger_commit_info, self.pending_votes[vote_idx], self.modules['config']['id'], author_sign)
+        if len(self.pending_votes[vote_idx]) == 2 * self.modules[CONFIG]['nfaulty'] + 1:
+            author_sign = self.modules[SAFETY].sign_message(self.pending_votes[vote_idx])
+            qc = QC(vote.vote_info, vote.ledger_commit_info, self.pending_votes[vote_idx], self.modules[CONFIG][ID], author_sign)
             return qc
         return None
     
@@ -154,5 +155,5 @@ class BlockTree:
         return result  
 
     def generate_block(self, config, txns, current_round):
-        block_id = get_hash((config['id'], current_round, txns, self.high_qc.vote_info.id, self.high_qc.signatures))
+        block_id = get_hash((config[ID], current_round, txns, self.high_qc.vote_info.id, self.high_qc.signatures))
         return Block(block_id, config, txns, current_round, self.high_qc)

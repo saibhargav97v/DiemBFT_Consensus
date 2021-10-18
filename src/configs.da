@@ -1,4 +1,5 @@
 from failure_config import Failure, FailureConfig, FailType
+from messages import MsgType
 
 configs =  [
     {'sq_num':1, 'nclients': 1, 'nreplicas': 1, 'nfaulty': 0, 'timeout': 30, 'numMessages' : 1,
@@ -12,9 +13,9 @@ configs =  [
     
     {'sq_num':4, 'nclients': 2, 'nreplicas': 5, 'nfaulty': 1, 'timeout': 30, 'numMessages' : 2,
     'failure' : FailureConfig(failures = [
-    Failure(src='_',dest='leader',msg_type='vote_message',round=1,prob=1,fail_type=FailType.Delay, val=9),
+    Failure(src='_',dest='leader',msg_type=MsgType.VOTE,round=1,prob=1,fail_type=FailType.Delay, val=9),
     Failure(src=2,dest='_',msg_type='_',round=3,prob=0.5,fail_type=FailType.MsgLoss),
-    Failure(src=4,dest='_',msg_type='vote_message',round=3,prob=0.5,fail_type=FailType.SetAttr,val=2,
+    Failure(src=4,dest='_',msg_type=MsgType.VOTE,round=3,prob=0.5,fail_type=FailType.SetAttr,val=2,
     attr='highest_vote_round')],seed = 12345678), 'delta': 2
     }
 ]
