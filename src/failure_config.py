@@ -10,3 +10,4 @@ class FailType(Enum):
     MsgLoss = 1
     Delay = 2
     SetAttr = 3
+    ByzatineNoPropose = 4

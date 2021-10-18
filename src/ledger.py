@@ -37,6 +37,7 @@ class Ledger:
                 txns.insert(0,state["payload"])
             id = state["parent_id"]
 
+        self.modules_map['latest_committed_payload'] = txns
         for txn in txns:
             self.persist_txn(txn)
 
@@ -71,7 +72,6 @@ class Ledger:
         if payload[3] in self.pending_txn_ids:
             self.pending_txn_ids.remove(payload[3])
 
-        self.modules_map['latest_committed_payload'] = payload
         payload = str(txn) + "\n"
         file_path = f'../ledgers/{self.modules_map[CONFIG]["config_num"]}/ledger_{str(self.modules_map[CONFIG][ID])}.txt'
         file = open(file_path, "a+")

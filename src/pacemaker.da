@@ -1,3 +1,4 @@
+from collections import defaultdict
 import sys
 from messages import TC
 
@@ -26,6 +27,7 @@ class PaceMaker:
         if tc is None or tc.round < self.current_round:
             return False
         self.last_round_tc = tc
+        self.modules_map['block_tree'].pending_votes = defaultdict(set)
         self.start_timer(tc.round + 1)              # Uncomment later when you are testing with timeouts
         return True
 

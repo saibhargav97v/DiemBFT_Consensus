@@ -35,7 +35,7 @@ class LeaderElection:
 
     def get_leader(self, round:int):
         if round in self.reputation_leaders and self.reputation_leaders[round] is not None:
-            return self.reputation_leaders[round] # check what is returned
+           return self.reputation_leaders[round] # check what is returned
         else:
             return math.floor(round) % len(self.validators)
     
