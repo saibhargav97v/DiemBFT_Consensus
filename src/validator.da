@@ -136,7 +136,7 @@ class Validator(process):
 
     def process_certificate_qc(qc):
         self.block_tree.process_qc(qc)
-        # self.modules["leader_election"].update_leaders(qc)
+        self.modules["leader_election"].update_leader(qc)
         self.pace_maker.advance_round_qc(qc)
 
     def setattr(attr,val):
@@ -144,6 +144,7 @@ class Validator(process):
         elif attr == 'current_round': self.modules['pace_maker']['current_round'] = val
 
     def process_proposal_message(P):
+        output("In proposal message")
         valid_msg = self.modules['safety'].verify_msg_signature(P.signature, P.sender)
         if not valid_msg:
             return
@@ -151,7 +152,8 @@ class Validator(process):
         self.process_certificate_qc(P.high_commit_qc)
         self.pace_maker.advance_round_tc(P.last_round_tc)
         round = self.modules["pace_maker"].current_round
-        leader = self.modules["leader_election" ].get_leader(round)
+        leader = self.modules["leader_election"].get_leader(round)
+        output("Leader : ", leader)
         self.logging.info("Propose here 1")
         if P.block.round != round or P.sender != leader or P.block.author != leader: #or not self.has_pending_transactions:
             self.logging.info(f"No Progress at {id}")
@@ -168,6 +170,7 @@ class Validator(process):
         vote_msg = self.modules["safety"].make_vote(P.block, P.last_round_tc)
         if vote_msg != None:
             next_leader = self.modules["leader_election"].get_leader(round+1)
+            output("Next_leader : ", next_leader)
             # send(('vote_message', id, self.modules["safety"].sign_message(vote_msg), logical_clock()), to=self.validators[next_leader])
             self.send_message('vote_message',vote_msg,next_leader)
 
