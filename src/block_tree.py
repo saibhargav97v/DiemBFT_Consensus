@@ -100,7 +100,7 @@ class BlockTree:
         self.process_qc(vote.high_commit_qc)
         vote_idx = get_hash(vote.ledger_commit_info)
         self.pending_votes[vote_idx].add((vote.sender, vote.signature))
-        if len(self.pending_votes[vote_idx]) == (len(self.modules["validators_list"]) - self.modules['config']['nfaulty']):
+        if len(self.pending_votes[vote_idx]) == 2 * self.modules['config']['nfaulty'] + 1:
             author_sign = self.modules['safety'].sign_message(self.pending_votes[vote_idx])
             qc = QC(vote.vote_info, vote.ledger_commit_info, self.pending_votes[vote_idx], self.modules['config']['id'], author_sign)
             return qc

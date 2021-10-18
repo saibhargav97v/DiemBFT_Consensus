@@ -16,7 +16,7 @@ from failure_config import Failure, FailureConfig, FailType
 
 class Validator(process):
 
-    def setup(id: int, validators: list, clients: list, public_keys: list, private_key, config_num, num_faulty, fail_config, parent):
+    def setup(id: int, validators: list, clients: list, public_keys: list, private_key, config_num, num_faulty, fail_config, delta, parent):
         self.setup_logger(config_num, logging.INFO)
         logging.info("Setup started")
         self.exit_flag = False
@@ -28,7 +28,7 @@ class Validator(process):
         self.modules["config"]["id"] = id
         self.modules["config"]["nfaulty"] = num_faulty
         self.modules["config"]["config_num"] = config_num
-        self.modules["config"]["delta"] = self.pace_maker_delta
+        self.modules["config"]["delta"] = delta
         self.modules['validators_list'] = self.validators
         self.safety = Safety(self.modules, private_key, public_keys, -1, -1)
         self.block_tree = BlockTree(self.modules)
@@ -42,8 +42,7 @@ class Validator(process):
         self.modules['leader_election'] = self.leader_election
         self.modules['safety'] = self.safety
         self.modules['mem_pool'] = self.mem_pool
-        self.is_leader =  True if id == 0 else False      #Initialization
-        self.sysinit = True                               #To trigger the first round at each validator process 
+        self.sysinit = True
         self.has_pending_transactions = True
         self.modules['latest_committed_payload'] = None
         self.initalize_ledger_file(config_num)
@@ -97,7 +96,7 @@ class Validator(process):
         return private_key.sign(serialized_msg)
 
     def send_ack_to_client(c_message):
-        self.logging.info(f'in send_ack_to_client {self.ledger.committed_txns.keys()} in :{id}')
+        self.logging.info(f'in send_ack_to_client {self.ledger.committed_txn_ids} in :{id}')
         if c_message:
             client_process = self.clients[int(c_message[1][1:])]
             send(('Ack', id, sign_message(c_message[0]), logical_clock(), c_message[3]), to=(client_process))

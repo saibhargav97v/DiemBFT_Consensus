@@ -2,19 +2,19 @@ from failure_config import Failure, FailureConfig, FailType
 
 configs =  [
     {'sq_num':1, 'nclients': 1, 'nreplicas': 1, 'nfaulty': 0, 'timeout': 30, 'numMessages' : 1,
-    'failure': None},
+    'failure': None, 'delta': 2},
 
     {'sq_num':2, 'nclients': 1, 'nreplicas': 4, 'nfaulty': 1, 'timeout': 30, 'numMessages' : 2,
-    'failure': None},
+    'failure': None, 'delta': 2},
 
     {'sq_num':3, 'nclients': 3, 'nreplicas': 7, 'nfaulty': 2, 'timeout': 5, 'numMessages' : 5,
-    'failure': None},
+    'failure': None, 'delta': 2},
     
     {'sq_num':4, 'nclients': 2, 'nreplicas': 5, 'nfaulty': 1, 'timeout': 30, 'numMessages' : 2,
     'failure' : FailureConfig(failures = [
-    Failure(src='_',dest='leader',msg_type='vote_message',round=1,prob=1,fail_type=FailType.Delay, val=0.1),
+    Failure(src='_',dest='leader',msg_type='vote_message',round=1,prob=1,fail_type=FailType.Delay, val=9),
     Failure(src=2,dest='_',msg_type='_',round=3,prob=0.5,fail_type=FailType.MsgLoss),
-    Failure(src='leader',dest='_',msg_type='vote_message',round=3,prob=0.5,fail_type=FailType.SetAttr,val=2,
-    attr='highest_vote_round')],seed = 12345678)
+    Failure(src=4,dest='_',msg_type='vote_message',round=3,prob=0.5,fail_type=FailType.SetAttr,val=2,
+    attr='highest_vote_round')],seed = 12345678), 'delta': 2
     }
 ]
