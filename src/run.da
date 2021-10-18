@@ -67,7 +67,7 @@ class Run(process):
 
 
 def main():
-    config(clock="Lamport")  #, channel="fifo"
+    config(clock="Lamport", channel="fifo")
 
     for config in configs:
         p = new(Run)
