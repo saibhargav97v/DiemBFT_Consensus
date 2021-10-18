@@ -110,7 +110,7 @@ class Validator(process):
         if valid_msg:
             msg = pickle.loads(msg.message)
             if action == MsgType.CLIENT:
-                if msg is not DUMMY :
+                if msg != DUMMY :
                     self.logging.info(f"{VALIDATOR} {id}: From client : {p} Msg : {msg}")
                 self.mem_pool.add_command_to_mempool([msg, sender, time, txn_id])
                 if self.sysinit:

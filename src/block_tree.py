@@ -62,6 +62,10 @@ class BlockTree:
         self.prev_block_id = None
 
     def __prune(self, id):
+        """
+        prunes all the nodes from the given block id to all its parent node
+        it keeps pruning until we prune all the commited blocks after ledger commits the blocks
+        """
         while id:
             block_to_prune = self.find_block(self.pending_block_tree, id)
             id = None
@@ -73,6 +77,10 @@ class BlockTree:
                 block_to_prune = None
 
     def __add(self,block):
+        """
+        adds a children to high qc block
+        find block method will get the high qc by searching the pending block tree
+        """
         blockid = self.high_qc.vote_info.id
         self.prev_block_id = block.id
         parent_block = self.find_block(self.pending_block_tree, blockid)
@@ -83,21 +91,30 @@ class BlockTree:
             parent_block.children.append(block)
 
     def process_qc(self, qc):
-        if qc and qc.ledger_commit_info  and qc.ledger_commit_info.commit_state_id != None and ((not self.high_commit_qc) or qc.vote_info.round > self.high_commit_qc.vote_info.round) :
-            self.modules[LEDGER].commit(qc.vote_info.parent_id)
-            self.__prune(qc.vote_info.parent_id)
+        """
+        commits only if ledger commit info is present and qc is more than high commit qc
+        else it just updates the high qc
+        """
+        if qc and qc.ledger_commit_info  and qc.ledger_commit_info.commit_state_id != None and ((not self.high_commit_qc) or qc.vote_info.round > self.high_commit_qc.vote_info.round) : 
+            self.modules[LEDGER].commit(qc.vote_info.parent_id)           #   Ledger.commit
+            self.__prune(qc.vote_info.parent_id)                            #   Prunes the Block Tree
             validator_id = self.modules[CONFIG][ID]
             current_round = self.modules[PACEMAKER].current_round
-            logging.info(f"validator {validator_id} committing bid {qc.vote_info.parent_id} in {current_round} round")
-            self.high_commit_qc = qc
+            logging.info(f"{VALIDATOR} {validator_id} committing bid {qc.vote_info.parent_id} in {current_round} round")
+            self.high_commit_qc = qc                                        #  Updates the high commit qc
         if qc and self.high_qc and qc.vote_info.round > self.high_qc.vote_info.round: 
             self.high_qc = qc      
 
     def execute_and_insert(self, b):
-        self.modules[LEDGER].speculate(self.prev_block_id, b.id, b.payload)
-        self.__add(b)
+        self.modules[LEDGER].speculate(self.prev_block_id, b.id, b.payload)  # updates the ledger speculated states
+        self.__add(b)                                                          # adds to the pending block tree
 
     def process_vote(self, vote):
+        """
+        Processes Vote messages 
+        checks signatures
+        tries to form a qc and return qc when there is a quorum
+        """
         self.process_qc(vote.high_commit_qc)
         vote_idx = get_hash(vote.ledger_commit_info)
         self.pending_votes[vote_idx].add((vote.sender, vote.signature))
@@ -108,6 +125,9 @@ class BlockTree:
         return None
     
     def find_block(self, blocks, id):
+        """
+        Searches and returns the block in the pending block tree
+        """
         found_block = None
         found_block_in_childs = None
         for block in blocks:
