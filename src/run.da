@@ -1,4 +1,5 @@
 import sys
+from messages import MsgType
 from validator import Validator
 from validator_fi import ValidatorFI
 from client import Client
@@ -54,17 +55,16 @@ class Run(process):
                                         config['sq_num'], config['timeout'], config['numMessages'], config['nfaulty'],self))  # Sending Validators List
             start(client)
         
-        await(each(l in clients, has=received(('done',), from_=l)))
+        await(each(l in clients, has=received((MsgType.DONE,), from_=l)))
         
         logger.info("Clients terminated")
-        logger.info("done")
-        send(('terminate',), to= (validators))
-        await(each(l in validators, has=received(('done',), from_=l)))
-        logger.info("Validators terminated")
-        send(('done',), to= nodeof(self))
-        logger.info("Terminating runner")
-        output('Run process done')
+        send((MsgType.TERMINATE,), to= (validators))
 
+        await(each(l in validators, has=received((MsgType.DONE,), from_=l)))
+        
+        logger.info("Validators terminated")
+        send((MsgType.DONE,), to= nodeof(self))
+        logger.info("Runner terminated")
 
 def main():
     config(clock="Lamport")  #, channel="fifo"
@@ -73,4 +73,4 @@ def main():
         p = new(Run)
         setup(p, (config,))
         start(p)  
-        await(received(('done',), from_=p))    
+        await(received((MsgType.DONE,), from_=p))    

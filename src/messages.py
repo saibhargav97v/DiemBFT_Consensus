@@ -1,3 +1,5 @@
+from enum import Enum
+
 class TimeOutMsg:
     def __init__(self, tmo_info, last_round_tc, high_commit_qc) -> None:
         self.tmo_info = tmo_info                # TimeoutInfo for some round with a high qc 
@@ -23,4 +25,14 @@ class ProposalMsg:
         self.last_round_tc = last_round_tc      # TC for block.round - 1 if block.qc.vote_info.round != block.round - 1, else None
         self.high_commit_qc = high_commit_qc    # QC to synchronize on committed blocks
         self.sender = sender                    
-        self.signature = signature              
+        self.signature = signature
+
+class MsgType(Enum):
+    PROPOSE = 1
+    REMOTE_TIMEOUT = 2
+    VOTE = 3
+    DONE = 4
+    ACK = 5
+    TERMINATE = 6
+    WILDCARD = 7
+    CLIENT = 8

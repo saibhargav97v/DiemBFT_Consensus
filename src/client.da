@@ -6,11 +6,8 @@ import logging
 import os
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
-
-"""
-Client functionality:
-1. 
-"""
+from messages import MsgType
+from constants import *
 
 
 class Client(process):
@@ -23,7 +20,6 @@ class Client(process):
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         handler = logging.FileHandler(log_file)       
         handler.setFormatter(formatter)
-
         logger = logging.getLogger(f"client_{config_num}")
         logger.setLevel(level)
         logger.addHandler(handler)
@@ -33,7 +29,7 @@ class Client(process):
 
     def setup(id, validators: list, public_keys: list, pvt_key, config_num, TIMEOUT, num_messages, num_faulty, parent):  
         self.logger = self.setup_logger(config_num, logging.INFO)
-        self.logger.info("Setup done")
+        self.logger.info("{CLIENT} {id}: Setup done")
         self.quorum_flag = 0            # Termination flag which checks if sufficient valid replies (f+1) are received 
                                         # from validators for client to agree on that transactions' commit
         self.quorum_map = defaultdict(int)
@@ -49,46 +45,46 @@ class Client(process):
             verify_key.verify(signed_obj)
             return True
         except BadSignatureError:
-            logging.error(f"Bad Signature, sender : {sender}, signed message: {signed_obj}")
+            logging.error(f"{CLIENT} {id}: Bad Signature, sender : {sender}, signed message: {signed_obj}")
             return False
 
     def run():
         
         while True:
-            i=0
-            while i < num_messages:
-                self.txn_id = f"{id}_{i}"
-                send(('Client', id, sign_message(f"transactions_{self.txn_id}"), logical_clock(),self.txn_id), to=self.validators)
-                self.logger.info(f"Message sent with txn_id: {self.txn_id}")
-                i+=1
+            iter=0
+            while iter < num_messages:
+                self.txn_id = f"{id}_{iter}"
+                send((MsgType.CLIENT, id, sign_message(f"transactions_{self.txn_id}"), logical_clock(),self.txn_id), to=self.validators)
+                self.logger.info(f"{CLIENT} {id}: Message sent with txn_id: {self.txn_id}")
+                iter+=1
 
             # Sending two dummy transactions at the end of the transactions list 
-            send(('Client', id, sign_message("dummy"), logical_clock(), self.txn_id), to=self.validators)
-            send(('Client', id, sign_message("dummy"), logical_clock(), self.txn_id), to=self.validators)
+            send((MsgType.CLIENT, id, sign_message(DUMMY), logical_clock(), self.txn_id), to=self.validators)
+            send((MsgType.CLIENT, id, sign_message(DUMMY), logical_clock(), self.txn_id), to=self.validators)
             
             if await(self.quorum_flag == 1):
                 #Await on the quorum flag to become set, if not timeout and resend client transactions to all validators.
-                self.logger.info(f'Length of quorum map :{len(self.quorum_map)} at Client: {id}')
+                self.logger.info(f'{CLIENT} {id}: Length of quorum map :{len(self.quorum_map)}')
                 for k,v in self.quorum_map.items():
                     self.logger.info(f'{k} - {v}')
-                self.logger.info(f'Client {id} processing done')
+                self.logger.info(f'{CLIENT} {id}: Processing done')
                 # output(f'Client {id} processing done')
                 break                                               # Break out of the while True loop once u receive sufficient 
                                                                     # replies for all your transac
                 
             elif timeout(TIMEOUT): # Timeout argument from setup. Client timeouts and then retransmitts requests.
-                 self.logger.info("In client run method : Timed out... Retransmitting requests")
+                 self.logger.info(f"{CLIENT} {id}: Run method : Timed out... Retransmitting requests")
 
-        self.logger.info("Sending done to runner")
-        send(('done', ), to=parent)
+        self.logger.info(f"{CLIENT} {id}: Sending done to runner")
+        send((MsgType.DONE, ), to=parent)
         
     
     def receive(msg = (action, sender, message, time, txn_id), from_=p):
         valid_msg = self.verify_msg_signature(message, sender)
         if valid_msg:
             msg_extract = pickle.loads(message.message)
-            if action == "Ack":
-                self.logger.info(f"From Validator: {sender}, {msg_extract}")
+            if action == MsgType.ACK:
+                self.logger.info(f"{CLIENT} {id}: From Validator: {sender}, {msg_extract}")
                 self.quorum_map[txn_id]+=1
                 self.logger.info(self.quorum_map)
                 if len(self.quorum_map) == num_messages:

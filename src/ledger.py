@@ -1,4 +1,5 @@
 import os
+from constants import *
 
 class Ledger:
     def __init__(self, modules_map):
@@ -20,7 +21,7 @@ class Ledger:
         txns = []
         while self.speculated_state.get(id, None) is not None:
             state = self.speculated_state.pop(id)
-            if state["payload"] and len(state["payload"]) and state["payload"][0] != "dummy":
+            if state["payload"] and len(state["payload"]) and state["payload"][0] != DUMMY:
                 self.LRU_commited_cache[id] = state["payload"]
                 txns.insert(0,state["payload"])
             id = state["prev_block_id"]
@@ -37,7 +38,7 @@ class Ledger:
     def persist_txn(self, txn):
         if txn is None:
             return
-        if txn[0] == "dummy":
+        if txn[0] == DUMMY:
             return
         payload = txn if len(txn) > 0 else None 
         if payload[3] not in self.committed_txn_ids:
@@ -47,7 +48,7 @@ class Ledger:
 
         self.modules_map['latest_committed_payload'] = payload
         payload = str(txn) + "\n"
-        file_path = f'../ledgers/{self.modules_map["config"]["config_num"]}/ledger_{str(self.modules_map["config"]["id"])}.txt'
+        file_path = f'../ledgers/{self.modules_map[CONFIG]["config_num"]}/ledger_{str(self.modules_map[CONFIG][ID])}.txt'
         file = open(file_path, "a+")
 
         file.write(payload)
