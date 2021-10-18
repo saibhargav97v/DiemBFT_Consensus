@@ -26,7 +26,7 @@ DiemBFT v4 Consensus Algorithm implementation in DistAlgo and Python.
 		modules implementations are in separate files. 
 	
 # Timeouts :
-* Client timeout : Different choice for different configs. Varies from 8 - 100 secs.
+* Client timeout : Different choice for different configs. Usually on the higher end ~ 30 secs.
 * Validator timeout : Choice of function is 4 * Delta where Delta is 2 secs.
 
 # Bugs and Limitations :
@@ -49,8 +49,8 @@ Since this might increase the round numbers unnecessarily. We chose to not wait 
 * Percentage lines for just the algorithm : 79% (907-182/907)
 
 # Language feature usage :
- * Python list comprehension : 4 across files
- * Python dictionary comprehension : 2 across files
+ * Python list comprehension : 4 across all files
+ * Python dictionary comprehension : 2 across all files
  * Python set comprehension : 4 across files
  * DistAlgo quantifications : 2 await(each()) quantifications used in run.da
  * DistAlgo await statements : 5 await statements
