@@ -143,7 +143,7 @@ class Validator(process):
     def setattr(attr,val):
         if attr == 'highest_vote_round': self.modules[SAFETY].set_highest_qc_round(val)
         elif attr == 'current_round': self.pace_maker.current_round = val
-        elif attr == 'high_qc.round': self.modules['block_tree']['high_qc']['round'] = val
+        elif attr == 'high_qc.round': self.block_tree.high_qc.round = val
 
     def process_proposal_message(P):
         valid_msg = self.modules[SAFETY].verify_msg_signature(P.signature, P.sender)
