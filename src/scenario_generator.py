@@ -1,3 +1,4 @@
+import os
 import random
 from more_itertools import set_partitions
 
@@ -17,8 +18,8 @@ def generate_heuristic_partitions(num_partitions, nodes, twins, partition_limit,
         number_of_quorum_partitions = random.randint(1, num_partitions)  #randomly select the number of partitions that will have quorum}
         if is_Deterministic:
             for i in range(number_of_quorum_partitions):    # deterministically select 2f+1 nodes for each partition that will have a quorum}
-                quorum_partition = frozenset(random.choice([nodes[(i+j)%n],twins.get(nodes[(i+j)%n],None) or nodes[(i+j)%n]])
-            for j in range(2*f+1))  # select a node or its twin for the partition
+                quorum_partition = frozenset(random.choice([nodes[(i+j)%n],twins.get(nodes[(i+j)%n],None) or nodes[(i+j)%n]]) for j in range(2*f+1))  
+                # select a node or its twin for the partition
                 groups.add(quorum_partition)
 
         else:
@@ -49,6 +50,19 @@ def generate_heuristic_partitions(num_partitions, nodes, twins, partition_limit,
     res = [[list(j) for j in i] for i in gen_partitions]
     return res
 
-partitions = generate_heuristic_partitions(3, [0,1,2,3], {0:4}, 25, False, 42)
-print(partitions)
+def persist_to_file(partitions):
+    file_path = f'./output.txt'
+    file = open(file_path, "w+")
 
+    # file.write(payload)
+    for item in partitions:
+        file.write(str(item)+"\n")
+
+    file.flush()
+    os.fsync(file.fileno())
+    file.close()
+
+# partitions = generate_heuristic_partitions(2, [0,1,2,3,4,5,6], {0:7, 1:8}, 30, True, 42)
+partitions = generate_heuristic_partitions(2, [0,1,2,3], {0:4}, 30, False, 42)
+persist_to_file(partitions)
+print(partitions)
